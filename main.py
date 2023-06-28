@@ -12,7 +12,7 @@ intents = discord.Intents.all()
 #forgive me for using global variables (;⌓;)
 
 ###remember
-pictureid = 1123599900442099722
+pictureid = 1123653650393333801
 currentmap = ""
 
 class server_info():
@@ -97,18 +97,28 @@ async def refresh_server_info():
                 msg = await channel.fetch_message(pictureid) # Message ID
                 await msg.delete()
                 pictureid = picture.id
-
             except:
                 print("Correct image not found:")
                 traceback.print_exc()
+
                 try:
-                    picture = await channel.send(file=discord.File("image_not_found.jpg"))
-                    msg = await channel.fetch_message(pictureid) # Message ID
-                    await msg.delete()
-                    pictureid = picture.id
+                    if currentmap != "Unknown":
+                        picture = await channel.send(file=discord.File("image_not_found.jpg"))
+                        msg = await channel.fetch_message(pictureid) # Message ID
+                        await msg.delete()
+                        pictureid = picture.id
+
+                    else:
+                        picture = await channel.send(file=discord.File("serverdown.jpg"))
+                        msg = await channel.fetch_message(pictureid) # Message ID
+                        await msg.delete()
+                        pictureid = picture.id
+                        print("Is the server down?")
+                        traceback.print_exc()
                 except:
                     print("Loading image failed horribly :(")
                     traceback.print_exc()
+
         else:
             pass
             
