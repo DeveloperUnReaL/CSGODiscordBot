@@ -5,12 +5,20 @@ from datetime import datetime, timedelta
 import discord
 from discord.ext import commands
 import a2s
+import traceback
 
+intents = discord.Intents.all()
+#configpath = "C:/Users/tuomas/Desktop/discord-csgo-bot-master/config.json"
+#forgive me for using global variables (;⌓;)
 
+###remember
+pictureid = 1123599900442099722
+currentmap = ""
 
 class server_info():
     def __init__(self, config):
         self.config = config
+        self.pictureid = config.get('latest_picture_id')
         self.ip_address = config.get('server_ip')
         self.server_port = config.get('server_port')
         self.connect_link = 'steam://connect/' + str(self.ip_address) + ':' + str(self.server_port) + '/'
@@ -19,15 +27,22 @@ class server_info():
     def get(self):     
 
         try:
+            #print("Server check started:")
             server_info = a2s.info((self.ip_address, self.server_port ))
+            #print("1")
             self.player_list = a2s.players((self.ip_address, self.server_port))
+            #print("2")
             self.server_name = server_info.server_name
+            #print("3")
             self.curr_map = server_info.map_name.split('/')[-1]
+            #print("4")
             self.players = str(server_info.player_count) + '/' + str(server_info.max_players)
+            #print("5")
             self.ping = str(int((server_info.ping* 1000))) + 'ms'
+            #print("Server check was successful")
 
         except:
-            print('Server down :(')
+            print('Server down: ', self.ip_address, ":", self.server_port, sep="")
             self.server_name = 'Server down :('
             self.curr_map = 'Unknown'
             self.players = '0'
@@ -44,10 +59,61 @@ class mm_player():
 # Refresh server info every n seconds     
 async def refresh_server_info():
     while(True):
+
         server_info.get()
         status = server_info.curr_map + ' | ' + server_info.players
         await client.change_presence(activity=discord.Game(name=status))
+
+
+        channel = client.get_channel(1122842434913701969)
+        message = await channel.fetch_message(1123291218315595847)
+        server_info.get()
+        status = server_info.curr_map + ' | ' + server_info.players  
+        embedVar2 = discord.Embed(title=server_info.server_name, color=0x00ff00)
+        
+        embedVar2.add_field(name='\u200b', value=server_info.connect_link, inline=False)
+        embedVar2.add_field(name='Map', value=server_info.curr_map, inline=True)
+        embedVar2.add_field(name='Players', value=server_info.players, inline=True)
+        embedVar2.add_field(name='Ping', value=server_info.ping, inline=True)
+        embedVar2.add_field(name='\u200b', value='\u200b', inline=False)
+        
+        await message.edit(embed=embedVar2)  
+
+
+        await client.change_presence(activity=discord.Game(name=status))
         await asyncio.sleep(config.get('refresh_time'))
+
+
+        '''''''This is just for testing'''''''
+        global currentmap
+        global pictureid
+
+        if currentmap != server_info.curr_map:
+            currentmap = server_info.curr_map
+            #msg_id = await channel.fetch_message(channel.last_message_id)
+
+            try:
+                picture = await channel.send(file=discord.File("images/{}.jpg".format(server_info.curr_map)))
+                msg = await channel.fetch_message(pictureid) # Message ID
+                await msg.delete()
+                pictureid = picture.id
+
+            except:
+                print("Correct image not found:")
+                traceback.print_exc()
+                try:
+                    picture = await channel.send(file=discord.File("image_not_found.jpg"))
+                    msg = await channel.fetch_message(pictureid) # Message ID
+                    await msg.delete()
+                    pictureid = picture.id
+                except:
+                    print("Loading image failed horribly :(")
+                    traceback.print_exc()
+        else:
+            pass
+            
+        
+        '''''''Testing ends here'''''''
 
 # check for inactive matchmaking search status every n minutes, after this, remove player from list
 async def check_mm_state():
@@ -66,10 +132,17 @@ def player_exists(iterable):
     return False
 
 # Load the config file
-with open("config.json") as json_file:
+with open("./config.json") as json_file:
     config = json.load(json_file)
+    print("config loaded:", config)
 
-client = commands.Bot(command_prefix=config.get('command_prefix'))
+client = commands.Bot(command_prefix='.',intents=intents)
+
+#bot = Bot(
+#    command_prefix=commands.when_mentioned_or(config["prefix"]),
+#    intents=intents,
+#    help_command=None,
+#)
 
 server_info = server_info(config)
 
@@ -84,7 +157,8 @@ async def on_ready():
 
 # !server - show server info embed
 @client.command()
-async def server(ctx):  
+async def server(ctx):
+
     server_info.get()
     status = server_info.curr_map + ' | ' + server_info.players  
     embedVar = discord.Embed(title=server_info.server_name, color=0x00ff00) 
@@ -101,13 +175,27 @@ async def server(ctx):
     embedVar.add_field(name='\u200b', value='\u200b', inline=False)
     for player in server_info.player_list:
             playerscore =  str(player.score) + ' Kills'
+            print("testing scores")
             embedVar.add_field(name=player.name, value=playerscore, inline=True)    
-    await client.change_presence(activity=discord.Game(name=status))    
+    await client.change_presence(activity=discord.Game(name=status))
+    
     await ctx.send(embed=embedVar)
+
+    channel = client.get_channel(1122842434913701969)
+    try:
+        picture = await channel.send(file=discord.File("images/{}.jpg".format(server_info.curr_map)))
+    except:
+        print("Correct image not found:")
+        try:
+            picture = await channel.send(file=discord.File("image_not_found.jpg"))
+        except:
+            print("Loading image failed horribly :(")
+
 
 # !ip - get connect link to server
 @client.command()
 async def ip(ctx):
+    print("toimii")
     await ctx.send(server_info.connect_link)
 
 @client.command()
@@ -179,6 +267,7 @@ async def about(ctx):
     embedVar = discord.Embed(title='discord-csgo-bot', color=0x00ff00)
     embedVar.add_field(name='gitHub', value='https://github.com/pd00m/discord-csgo-bot', inline=False)
     await ctx.send(embed=embedVar)
+
 
 client.run(config.get('token'))
 
