@@ -12,7 +12,7 @@ intents = discord.Intents.all()
 #forgive me for using global variables (;⌓;)
 
 ###remember
-pictureid = 1123653650393333801
+pictureid = 1124315824702902385
 currentmap = ""
 
 class server_info():
@@ -76,6 +76,9 @@ async def refresh_server_info():
         embedVar2.add_field(name='Players', value=server_info.players, inline=True)
         embedVar2.add_field(name='Ping', value=server_info.ping, inline=True)
         embedVar2.add_field(name='\u200b', value='\u200b', inline=False)
+        for player in server_info.player_list:
+            playerscore =  'Score ' + str(player.score)
+            embedVar2.add_field(name=player.name, value=playerscore, inline=True)    
         
         await message.edit(embed=embedVar2)  
 
@@ -109,7 +112,7 @@ async def refresh_server_info():
                         pictureid = picture.id
 
                     else:
-                        picture = await channel.send(file=discord.File("serverdown.jpg"))
+                        picture = await channel.send(file=discord.File("serverdown.png"))
                         msg = await channel.fetch_message(pictureid) # Message ID
                         await msg.delete()
                         pictureid = picture.id
@@ -172,12 +175,12 @@ async def server(ctx):
     server_info.get()
     status = server_info.curr_map + ' | ' + server_info.players  
     embedVar = discord.Embed(title=server_info.server_name, color=0x00ff00) 
-    if(len(config.get('custom_thumb')) > 0):
-        embedVar.set_thumbnail(url=config.get('custom_thumb'))
-    map_banner = config['map_banner'].get(server_info.curr_map, None)
-    if(map_banner):
-        if(len(map_banner) > 0):
-            embedVar.set_image(url=map_banner)
+    #if(len(config.get('custom_thumb')) > 0):
+        #embedVar.set_thumbnail(url=config.get('custom_thumb'))
+    #map_banner = config['map_banner'].get(server_info.curr_map, None)
+    #if(map_banner):
+        #if(len(map_banner) > 0):
+            #embedVar.set_image(url=map_banner)
     embedVar.add_field(name='\u200b', value=server_info.connect_link, inline=False)
     embedVar.add_field(name='Map', value=server_info.curr_map, inline=True)
     embedVar.add_field(name='Players', value=server_info.players, inline=True)
